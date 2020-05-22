@@ -5,7 +5,7 @@ g_posts_path="$g_root/posts"
 g_build_path="$g_root/public"
 g_site_title="Welling Guzman's log"
 g_site_description="Infrequently learning journal and random notes"
-g_markdown="$g_root/vendor/Markdown.pls"
+g_markdown="$g_root/vendor/Markdown.pl"
 
 g_PATH_INFO_NAME=0
 g_PATH_INFO_EXT=1
@@ -19,23 +19,26 @@ g_POST_CONTENT=4
 
 get_ext()
 {
-	path=$1
-	echo "${path#*.}"
+	local path=$1
+	local filename=$(basename -- "$path")
+	local extension="${filename##*.}"
+	echo "$extension"
 }
 
 get_name()
 {
-	path=$1
-	ext=$(get_ext $path)
-	name=$(basename "${path%.$ext}")
-
-	echo $name
+	local path=$1
+	local filename=$(basename -- "$path")
+	local extension="${filename##*.}"
+	local filename="${filename%.*}"
+	echo "$filename"
 }
 
 get_basename()
 {
 	path=$1
-	echo ${path##*/}
+	local filename=$(basename -- "$path")
+	echo "$filename"
 }
 
 get_path_info()
@@ -205,7 +208,7 @@ create_post()
 	>$tmp
 	build_page "$page_content"
 	mv $tmp "$g_build_path/$name.html"
-	chmod 644 "$g_build_path/$name.html"
+	chmod 664 "$g_build_path/$name.html"
 }
 
 get_tags()
@@ -307,7 +310,7 @@ rebuild_index()
 	build_page "$page_content"
 
 	mv $tmp "$g_build_path/index.html"
-	chmod 644 "$g_build_path/index.html"
+	chmod 664 "$g_build_path/index.html"
 	rm -rf "$tmp_posts"
 }
 
@@ -331,7 +334,7 @@ edit()
 
 if [[ ! -f "$g_build_path" ]]; then
 	mkdir -p "$g_build_path"
-	chmod 744 "$g_build_path"
+	chmod 754 "$g_build_path"
 fi
 
 case $1 in
