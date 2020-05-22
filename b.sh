@@ -110,7 +110,9 @@ get_file_parts()
 
 build_page()
 {
-	content=$1
+	local title;
+	local content=$1
+
 	if [[ ! -z "$title" ]]; then
 		title="$title – $g_site_title"
 	else
@@ -151,17 +153,16 @@ build_page()
 
 create_post()
 {
-	path=$1
-	content=$(get_content $path)
+	local path=$1
 	get_path_info "$path"
-	ext="${pathinfo[g_PATH_INFO_EXT]}"
-	name=$(get_name $path)
+	local ext="${pathinfo[g_PATH_INFO_EXT]}"
+	local name=$(get_name $path)
 
-	tmp="$path.tmp"
-	title=""
-	tags=""
-	datetime=""
-	content=""
+	local tmp="$path.tmp"
+	local title=""
+	local tags=""
+	local datetime=""
+	local content=""
 
 	echo "Building $name..."
 	echo "Reading metadata..."
