@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-g_root="."
+g_root=$(pwd)
 g_posts_path="$g_root/posts"
 g_build_path="$g_root/public"
 g_site_title="Welling Guzman's log"
