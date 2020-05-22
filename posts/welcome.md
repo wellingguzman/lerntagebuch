@@ -1,6 +1,6 @@
 title: Welcome 
 datetime: 2020-05-21T23:46:54Z
-tags: learning
+tags: learning bash
 Welcome, this is my learning journal. The goal of this journal is to have a public place where I can write about my learning activities in a infrequently manner.
 
 To start this learning journal, the first thing I tried to learn was to make a simple site generator in bash. That script was used to build this page. I didn't make so many notes because I was expecting to write one, but let the code speak a bit for itself.
