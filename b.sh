@@ -110,8 +110,8 @@ get_file_parts()
 
 build_page()
 {
-	local title;
 	local content=$1
+	local title=$2;
 
 	if [[ ! -z "$title" ]]; then
 		title="$title – $g_site_title"
@@ -207,7 +207,7 @@ create_post()
 
 	page_content=$(get_content "$tmp")
 	>$tmp
-	build_page "$page_content"
+	build_page "$page_content" "$title"
 	mv $tmp "$g_build_path/$name.html"
 	chmod 664 "$g_build_path/$name.html"
 }
