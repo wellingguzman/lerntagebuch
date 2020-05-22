@@ -37,6 +37,8 @@ If we want to `list[1]` to always be the extension value, but because `$ext` is 
 	filename="$name$ext"
 	list=("$name" "$ext" "$filename")
 
+One difficult thing that I didn't find a way to do it properly was to sort the files not based on the filename, by including the datetime, but on an the datetime attribute inside the file content. I wanted to create an array of objects that I could create from the first files iteration, then sort accordingly, but that's something easy to do in high level languages, in bash I didn't find anything to do it that I could think I know what was going on exactly. So I ended up creating temporary files with the date part of the filename, then sort them, this way I keep the original file without datetime in its file, but then I had to re read again the files, that's the drawback from getting my ideal structure.
+
 I wanted to make this script barely functional first, then just fix things along the way (if I ever keep using it much), and add things that will make it easier for me to add notes. Because this static site generator was created with the purpose of learning and just create something.
 
 Back to the roots of having fun and enjoy making something. If interested the code available in [github](https://github.com/wellingguzman/b.sh).
