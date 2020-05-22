@@ -147,6 +147,10 @@ build_page()
 	echo "</header>" >> "$tmp"
 	echo "$content" >> "$tmp"
 
+	echo "<footer><center>" >> "$tmp"
+	echo "<a href=\"https://wellingguzman.com\">Welling Guzman's homepage</a>" >> "$tmp"
+	echo "</center></footer>" >> "$tmp"
+
 	echo "</div>" >> "$tmp"
 	echo "</body></html>" >> "$tmp"
 }
