@@ -1,11 +1,19 @@
 #!/usr/bin/env bash
 
-g_root=$(pwd)
-g_posts_path="$g_root/posts"
-g_build_path="$g_root/public"
-g_site_title="Welling Guzman's log"
-g_site_description="Infrequently learning journal and random notes"
-g_markdown="$g_root/vendor/Markdown.pl"
+# Version: 8959ff4
+
+_global_variables() {
+	g_root=$(pwd)
+	g_posts_path="$g_root/posts"
+	g_build_path="$g_root/public"
+	g_site_title="Document title"
+	g_site_description="Document description"
+	g_markdown="$g_root/vendor/Markdown.pl"
+
+	if [[ $(type -t global_variables) == 'function' ]]; then
+		global_variables
+	fi
+}
 
 g_PATH_INFO_NAME=0
 g_PATH_INFO_EXT=1
@@ -22,6 +30,7 @@ get_ext()
 	local path=$1
 	local filename=$(basename -- "$path")
 	local extension="${filename##*.}"
+
 	echo "$extension"
 }
 
@@ -31,13 +40,15 @@ get_name()
 	local filename=$(basename -- "$path")
 	local extension="${filename##*.}"
 	local filename="${filename%.*}"
+
 	echo "$filename"
 }
 
 get_basename()
 {
-	path=$1
+	local path=$1
 	local filename=$(basename -- "$path")
+
 	echo "$filename"
 }
 
@@ -46,6 +57,7 @@ get_path_info()
 	local name=$(get_name "$1")
 	local ext=$(get_ext "$1")
 	local basename=$name
+
 	if [[ -z "$ext" ]]; then
 		basename+=".$ext"
 	fi
@@ -60,7 +72,11 @@ get_path_info()
 get_content()
 {
 	path=$1
-	cat $path
+	if [ -s "$path" ]; then
+		cat $path
+	else
+		echo ""
+	fi
 }
 
 convert_content()
@@ -68,9 +84,20 @@ convert_content()
 	content=$1
 
 	if [[ -f "$g_markdown" ]]; then
-		echo "$1" | $g_markdown
+		printf '%s' "$content" | $g_markdown
 	else
-		echo "$1"
+		printf '%s' "$content"
+	fi
+}
+
+convert_file()
+{
+	local path=$1
+
+	if [[ -f "$g_markdown" ]]; then
+		$g_markdown "$path"
+	else
+		cat "$path"
 	fi
 }
 
@@ -82,21 +109,38 @@ get_file_parts()
 	local datetime=""
 	local content=""
 	local tmp="$path.info.tmp"
+	local part_start=0
+	local part_done=0
 
 	while IFS= read -r line
 	do
-		if [[ $line == "title:"* ]]; then
-			title=$(echo $line | cut -d: -f 2 | awk '{$1=$1};1')
-		elif [[ $line == "tags:"* ]]; then
-			tags=$(echo $line | cut -d: -f 2 | awk '{$1=$1};1')
-		elif [[ $line == "datetime:"* ]]; then
-			datetime=$(echo $line | cut -d: -f 2- | awk '{$1=$1};1')
-		else
-			echo "$line" >> "$tmp"
+		if [[ $line == "---" ]]; then
+			if [[ $part_start == 1 ]]; then
+				part_start=0
+				part_done=1
+			else
+				part_start=1
+			fi
+			continue;
 		fi
+
+		if [[ $part_done == 0 && $part_start == 1 ]]; then
+			if [[ $line == "title:"* ]]; then
+				title=$(echo $line | cut -d: -f 2 | awk '{$1=$1};1')
+			elif [[ $line == "tags:"* ]]; then
+				tags=$(echo $line | cut -d: -f 2 | awk '{$1=$1};1')
+			elif [[ $line == "datetime:"* ]]; then
+				datetime=$(echo $line | cut -d: -f 2- | awk '{$1=$1};1')
+			fi
+
+			continue
+		fi
+
+		# content
+		printf '%s\n' "$line" >> "$tmp"
 	done < "$path"
 
-	content=$(cat "$tmp")
+	content=$(get_content "$tmp")
 	rm -rf "$tmp"
 
 	parts=(
@@ -112,6 +156,7 @@ build_page()
 {
 	local content=$1
 	local title=$2;
+	local target=$3
 
 	if [[ ! -z "$title" ]]; then
 		title="$title – $g_site_title"
@@ -119,40 +164,40 @@ build_page()
 		title=$g_site_title
 	fi
 
-	echo "<!doctype html>" >> "$tmp"
-	echo "<html lang=\"en\">" >> "$tmp"
-	echo "<head>" >> "$tmp"
-	echo "<meta charset=\"utf-8\">" >> "$tmp"
-	echo "<title>$title</title>" >> "$tmp"
-	if [[ ! -z $g_site_description ]]; then
-		echo "<meta name=\"description\" content=\"$g_site_description\">" >> "$tmp"
-	fi
-	echo "<meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">" >> "$tmp"
-	echo "</head>" >> "$tmp"
+	{
+		echo "<!doctype html>"
+		echo "<html lang=\"en\">"
+		echo "<head>"
+		echo "<meta charset=\"utf-8\">"
+		echo "<title>$title</title>"
+		if [[ ! -z $g_site_description ]]; then
+			echo "<meta name=\"description\" content=\"$g_site_description\">"
+		fi
+		echo "<meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">"
+		echo "</head>"
 
-	local styles_path="$g_root/_styles.css"
-	if [[ -f "$styles_path" ]]; then
-		styles=$(get_content "$styles_path")
-		echo "<style>" >> "$tmp"
-		echo $styles >> "$tmp"
-		echo "</style>" >> "$tmp"
-	fi
+		local styles_path="$g_root/_styles.css"
+		if [[ -f "$styles_path" ]]; then
+			echo "<style>"
+			get_content "$styles_path"
+			echo "</style>"
+		fi
 
-	echo "</head>" >> "$tmp"
-	echo "<body>" >> "$tmp"
-	echo "<div class=\"container\">" >> "$tmp"
-	echo "<header>" >> "$tmp"
-	echo "<h1><a href=\"/\">$g_site_title</a></h1>" >> "$tmp"
-	echo "<p>$g_site_description</p>" >> "$tmp"
-	echo "</header>" >> "$tmp"
-	echo "$content" >> "$tmp"
+		echo "</head>"
+		echo "<body>"
+		echo "<div class=\"container\">"
+		echo "<header>"
+		echo "<h1><a href=\"/\">$g_site_title</a></h1>"
+		echo "<p>$g_site_description</p>"
+		echo "</header>"
 
-	echo "<footer><center>" >> "$tmp"
-	echo "<a href=\"https://wellingguzman.com\">Welling Guzman's homepage</a>" >> "$tmp"
-	echo "</center></footer>" >> "$tmp"
+		cat $content
 
-	echo "</div>" >> "$tmp"
-	echo "</body></html>" >> "$tmp"
+		echo "</div>"
+		echo "</body></html>"
+	} > "$target"
+
+	chmod 664 $target
 }
 
 create_post()
@@ -163,57 +208,76 @@ create_post()
 	local name=$(get_name $path)
 
 	local tmp="$path.tmp"
+	local tmpContent="$path.content"
 	local title=""
 	local tags=""
 	local datetime=""
 	local content=""
+	local part_start=0
+	local part_done=0
 
 	echo "Building $name..."
 	echo "Reading metadata..."
+
+	# TODO: Create a function to split metadata and content
 	while IFS= read -r line
 	do
-		if [[ $line == "title:"* ]]; then
-			title=$(echo $line | cut -d: -f 2 | awk '{$1=$1};1')
-		elif [[ $line == "tags:"* ]]; then
-			tags=$(echo $line | cut -d: -f 2 | awk '{$1=$1};1')
-		elif [[ $line == "datetime:"* ]]; then
-			datetime=$(echo $line | cut -d: -f 2- | awk '{$1=$1};1')
-		else
-			echo "$line" >> "$tmp"
+		if [[ $line == "---" ]]; then
+			if [[ $part_start == 1 ]]; then
+				part_start=0
+				part_done=1
+			else
+				part_start=1
+			fi
+			continue;
 		fi
+
+		if [[ $part_done == 0 && $part_start == 1 ]]; then
+			if [[ $line == "title:"* ]]; then
+				title=$(echo $line | cut -d: -f 2 | awk '{$1=$1};1')
+			elif [[ $line == "tags:"* ]]; then
+				tags=$(echo $line | cut -d: -f 2 | awk '{$1=$1};1')
+			elif [[ $line == "datetime:"* ]]; then
+				datetime=$(echo $line | cut -d: -f 2- | awk '{$1=$1};1')
+			fi
+
+			continue
+		fi
+
+		# content
+		printf '%s\n' "$line" >> "$tmpContent"
 	done < "$path"
 
-	content=$(cat $tmp)
-	if [[ $ext == "md" ]]; then
-		echo "Converting to HTML..."
-		content=$(convert_content "$content")
-	fi
+	{
+		echo "<article>"
+		echo "<h1 class=\"title\">$title</h1>"
 
-	>$tmp
-	echo "<article>" >> "$tmp"
-	echo "<h1 class=\"title\">$title</h1>" >> "$tmp"
-	echo "$content" >> "$tmp"
-	
-	if [[ ! -z "$datetime" ]] || [[ ! -z "$tags" ]]; then
-		echo "<div class=\"meta\">" >> "$tmp"
-	fi
-	if [[ ! -z "$datetime" ]]; then
-		echo "Date: <time>$datetime</time>" >> "$tmp"
-	fi
-	if [[ ! -z "$tags" ]]; then
-		echo $(get_tags "$tags") >> "$tmp"
-	fi
-	if [[ ! -z "$datetime" ]] || [[ ! -z "$tags" ]]; then
-		echo "</div>" >> "$tmp"
-	fi
+		if [[ $ext == "md" ]]; then
+			convert_file "$tmpContent"
+		else
+			get_content "$tmpContent"
+		fi
 
-	echo "</article>" >> "$tmp"
+		if [[ ! -z "$datetime" ]] || [[ ! -z "$tags" ]]; then
+			echo "<div class=\"meta\">"
+		fi
+		if [[ ! -z "$datetime" ]]; then
+			echo "Date: <time>$datetime</time>"
+		fi
+		if [[ ! -z "$tags" ]]; then
+			get_tags "$tags"
+		fi
+		if [[ ! -z "$datetime" ]] || [[ ! -z "$tags" ]]; then
+			echo "</div>"
+		fi
 
-	page_content=$(get_content "$tmp")
-	>$tmp
-	build_page "$page_content" "$title"
-	mv $tmp "$g_build_path/$name.html"
-	chmod 664 "$g_build_path/$name.html"
+		echo "</article>"
+	} > "$tmp"
+
+	rm $tmpContent
+
+	build_page "$tmp" "$title" "$g_build_path/$name.html"
+	rm $tmp
 }
 
 get_tags()
@@ -241,11 +305,13 @@ build_all() {
 rebuild_index()
 {
 	local tmp_posts="$g_root/.sort"
+	local tmp="$g_posts_path/index.tmp";
 	local filename;
-	local tmp;
+	local files;
+
 	mkdir -p $tmp_posts
 	chmod 750 $tmp_posts
-	local files;
+	>$tmp
 
 	echo "Sorting posts..."
 	for file in $(ls -d $g_posts_path/*.{html,md} 2>/dev/null); do
@@ -255,6 +321,7 @@ rebuild_index()
 		get_path_info "$file"
 		local datetime=${parts[g_POST_DATETIME]}
 
+		# TODO: Fix index page when all posts have no datetime
 		if [[ -z "$datetime" ]]; then
 			continue
 		fi
@@ -262,15 +329,16 @@ rebuild_index()
 		filename="${datetime//[:\-_+]/}_$name"
 		
 		local path="$tmp_posts/$filename.tmp"
+		echo "---" > "$path"
 		echo "title: ${parts[g_POST_TITLE]}" >> "$path"
 		echo "datetime: ${parts[g_POST_DATETIME]}" >> "$path"
 		echo "tags: ${parts[g_POST_TAGS]}" >> "$path"
-		echo "${parts[g_POST_CONTENT]}" >> "$path"
+		echo "---" >> "$path"
+		printf '%s\n' "${parts[g_POST_CONTENT]}" >> "$path"
 	done
 
 	echo "Generating posts index..."
-	tmp="$g_posts_path/index.tmp"
-	for file in $(ls -d $tmp_posts/*); do
+	for file in $(ls -d $tmp_posts/* 2>/dev/null); do
 		get_file_parts "$file"
 		title=${parts[g_POST_TITLE]}
 		datetime=${parts[g_POST_DATETIME]}
@@ -284,44 +352,45 @@ rebuild_index()
 		ext="${pathinfo[g_PATH_INFO_EXT]}"
 		orig_filename=$(get_name "$(echo "$file_name" | cut -d_ -f2-)")
 
-		if [[ $ext == "md" ]]; then
-			content=$(convert_content "$content")
-		fi
+		{
+			echo "<article class=\"\">"
+			if [[ -z "$title" ]]; then
+				title="Untitled"
+			fi
+			echo "<h2><a href=\"$orig_filename.html\">$title</a></h2>"
 
-		echo "<article class=\"\">" >> "$tmp"
-		if [[ -z "$title" ]]; then
-			title="Untitled"
-		fi
-		echo "<h2><a href=\"$orig_filename.html\">$title</a></h2>" >> "$tmp"
-		echo "$content" >> "$tmp"
-		if [[ ! -z "$datetime" ]] || [[ ! -z "$tags" ]]; then
-			echo "<div class=\"meta\">" >> "$tmp"
-		fi
-		if [[ ! -z "$datetime" ]]; then
-			echo "Date: <time>$datetime</time>" >> "$tmp"
-		fi
-		if [[ ! -z "$tags" ]]; then
-			echo $(get_tags "$tags") >> "$tmp"
-		fi
-		if [[ ! -z "$datetime" ]] || [[ ! -z "$tags" ]]; then
-			echo "</div>" >> "$tmp"
-		fi
-		echo "</article>" >> "$tmp"
-		echo "<hr>" >> "$tmp"
+			if [[ $ext == "md" ]]; then
+				convert_content "$content"
+			else
+				printf '%s' "$content"
+			fi
+
+			if [[ ! -z "$datetime" ]] || [[ ! -z "$tags" ]]; then
+				echo "<div class=\"meta\">"
+			fi
+			if [[ ! -z "$datetime" ]]; then
+				echo "Date: <time>$datetime</time>"
+			fi
+			if [[ ! -z "$tags" ]]; then
+				echo $(get_tags "$tags")
+			fi
+			if [[ ! -z "$datetime" ]] || [[ ! -z "$tags" ]]; then
+				echo "</div>"
+			fi
+			echo "</article>"
+			echo "<hr>"
+		} >> "$tmp"
 	done
 
-	page_content=$(get_content "$tmp")
-	>$tmp
-	build_page "$page_content"
-
-	mv $tmp "$g_build_path/index.html"
-	chmod 664 "$g_build_path/index.html"
+	build_page "$tmp" "" "$g_build_path/index.html"
+	rm $tmp
 	rm -rf "$tmp_posts"
 }
 
 edit()
 {
 	local path="$g_posts_path/$1"
+
 	if [[ ! -f "$g_posts_path" ]]; then
 		mkdir -p "$g_posts_path"
 		chmod 744 "$g_posts_path"
@@ -337,7 +406,15 @@ edit()
 	create_post $path
 }
 
+# Add custom variables
+if [ -f "./extras.sh" ]; then
+    . ./extras.sh
+fi
+
+_global_variables
+
 if [[ ! -f "$g_build_path" ]]; then
+	echo "Creating build path: $g_build_path"
 	mkdir -p "$g_build_path"
 	chmod 754 "$g_build_path"
 fi
