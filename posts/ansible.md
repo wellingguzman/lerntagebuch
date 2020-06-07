@@ -23,6 +23,7 @@ I'm using Mac OSX and I [installed ansible using pip](https://docs.ansible.com/a
 <time>9:33pm</time> I found you don't need to create the symlink or anything there's a order in which ansible look for the the configuration, and you can set one in your home directory and change the inventory path there.
 
 > Changes can be made and used in a configuration file which will be searched for in the following order:
+>
 > - ANSIBLE_CONFIG (environment variable if set)
 > - ansible.cfg (in the current directory)
 > - ~/.ansible.cfg (in the home directory)
