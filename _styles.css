@@ -103,6 +103,7 @@ article h2, article h3 {
 pre {
 	background-color: #EEEEEE;
 	padding: 1rem;
+	overflow: auto;
 }
 
 .meta {
