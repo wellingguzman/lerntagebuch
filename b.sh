@@ -6,12 +6,17 @@ _global_variables() {
 	g_root=$(pwd)
 	g_posts_path="$g_root/posts"
 	g_build_path="$g_root/public"
+	g_fn_index_build=fn_index_default
 	g_site_title="Document title"
 	g_site_description="Document description"
 	g_markdown="$g_root/vendor/Markdown.pl"
 
 	if [[ $(type -t global_variables) == 'function' ]]; then
 		global_variables
+	fi
+
+	if [[ $(type -t $g_fn_index_build) != 'function' ]]; then
+		g_fn_index_build=fn_index_default
 	fi
 }
 
@@ -77,6 +82,110 @@ get_content()
 	else
 		echo ""
 	fi
+}
+
+get_datetime()
+{
+	local datetime=$1
+	local pattern="^([0-9]{4})-([0-9]{2})-([0-9]{2})T([0-9]{2}):([0-9]{2}):([0-9]{2})(Z|([-+])([0-9]{2}):([0-9]{2}))$"
+
+	local YEAR=""
+	local MONTH=""
+	local DAY=""
+	local HOUR=""
+	local MINUTE=""
+	local SECOND=""
+	local OFFSET_TYPE=""
+	local OFFSET_HOUR=""
+	local OFFSET_MINUTE=""
+	local FULL_DATETIME_FORMAT=""
+	local DATETIME_FORMAT=""
+	local IS_UTC=0
+
+	if [[ $datetime =~ $pattern ]]; then
+		YEAR=${BASH_REMATCH[1]}
+		MONTH=${BASH_REMATCH[2]}
+		DAY=${BASH_REMATCH[3]}
+		HOUR=${BASH_REMATCH[4]}
+		MINUTE=${BASH_REMATCH[5]}
+		SECOND=${BASH_REMATCH[6]}
+		if [[ ${BASH_REMATCH[7]} == "Z" ]]; then
+			IS_UTC=1
+			OFFSET_TYPE="+"
+			OFFSET_HOUR="00"
+			OFFSET_MINUTE="00"
+		else
+			OFFSET_TYPE=${BASH_REMATCH[8]}
+			OFFSET_HOUR=${BASH_REMATCH[9]}
+			OFFSET_MINUTE=${BASH_REMATCH[10]}
+		fi
+	fi
+
+	FULL_DATETIME_FORMAT="${YEAR}-${MONTH}-${DAY} ${HOUR}:${MINUTE}:${SECOND} $OFFSET_TYPE$OFFSET_HOUR:$OFFSET_MINUTE"
+	DATETIME_FORMAT="${YEAR}-${MONTH}-${DAY} ${HOUR}:${MINUTE}:${SECOND}"
+
+	# TODO: Convert datetime to UTC based on its offset
+	datetime_parts=(
+		"$YEAR"
+		"$MONTH"
+		"$DAY"
+		"$HOUR"
+		"$MINUTE"
+		"$SECOND"
+		"$IS_UTC"
+		"$OFFSET_TYPE"
+		"$OFFSET_HOUR"
+		"$OFFSET_MINUTE"
+		"$FULL_DATETIME_FORMAT"
+		"$DATETIME_FORMAT"
+		"$datetime"
+	)
+}
+
+month_short()
+{
+	local month=$1
+
+	case "$month" in
+		"01")
+			echo "Jan"
+			;;
+		"02")
+			echo "Feb"
+			;;
+		"03")
+			echo "Mar"
+			;;
+		"04")
+			echo "Apr"
+			;;
+		"05")
+			echo "May"
+			;;
+		"06")
+			echo "Jun"
+			;;
+		"07")
+			echo "Jul"
+			;;
+		"08")
+			echo "Aug"
+			;;
+		"09")
+			echo "Sep"
+			;;
+		"10")
+			echo "Oct"
+			;;
+		"11")
+			echo "Nov"
+			;;
+		"12")
+			echo "Dec"
+			;;
+		*)
+			echo "$month"
+	esac
 }
 
 convert_content()
@@ -262,7 +371,14 @@ create_post()
 			echo "<div class=\"meta\">"
 		fi
 		if [[ ! -z "$datetime" ]]; then
-			echo "Date: <time>$datetime</time>"
+			get_datetime "$datetime"
+			printf "Date: <time datetime=\"$datetime\">"
+			if [[ ${datetime_parts[7]} == 1 ]]; then
+				printf "${datetime_parts[10]}"
+			else
+				printf "${datetime_parts[11]} UTC"
+			fi
+			printf "</time>"
 		fi
 		if [[ ! -z "$tags" ]]; then
 			get_tags "$tags"
@@ -302,42 +418,10 @@ build_all() {
 	done
 }
 
-rebuild_index()
+fn_index_default()
 {
-	local tmp_posts="$g_root/.sort"
-	local tmp="$g_posts_path/index.tmp";
-	local filename;
-	local files;
+	local tmp=$1
 
-	mkdir -p $tmp_posts
-	chmod 750 $tmp_posts
-	>$tmp
-
-	echo "Sorting posts..."
-	for file in $(ls -d $g_posts_path/*.{html,md} 2>/dev/null); do
-		name=$(get_basename $file)
-
-		get_file_parts "$file"
-		get_path_info "$file"
-		local datetime=${parts[g_POST_DATETIME]}
-
-		# TODO: Fix index page when all posts have no datetime
-		if [[ -z "$datetime" ]]; then
-			continue
-		fi
-
-		filename="${datetime//[:\-_+]/}_$name"
-		
-		local path="$tmp_posts/$filename.tmp"
-		echo "---" > "$path"
-		echo "title: ${parts[g_POST_TITLE]}" >> "$path"
-		echo "datetime: ${parts[g_POST_DATETIME]}" >> "$path"
-		echo "tags: ${parts[g_POST_TAGS]}" >> "$path"
-		echo "---" >> "$path"
-		printf '%s\n' "${parts[g_POST_CONTENT]}" >> "$path"
-	done
-
-	echo "Generating posts index..."
 	for file in $(ls -d $tmp_posts/* 2>/dev/null); do
 		get_file_parts "$file"
 		title=${parts[g_POST_TITLE]}
@@ -369,7 +453,7 @@ rebuild_index()
 				echo "<div class=\"meta\">"
 			fi
 			if [[ ! -z "$datetime" ]]; then
-				echo "Date: <time>$datetime</time>"
+				echo "Date: <time datetime=\"$datetime\">$datetime</time>"
 			fi
 			if [[ ! -z "$tags" ]]; then
 				echo $(get_tags "$tags")
@@ -381,6 +465,88 @@ rebuild_index()
 			echo "<hr>"
 		} >> "$tmp"
 	done
+}
+
+fn_index_list()
+{
+	local tmp=$1
+
+	{
+		echo "<table><tbody>"
+		for file in $(ls -d $tmp_posts/* 2>/dev/null); do
+			get_file_parts "$file"
+			title=${parts[g_POST_TITLE]}
+			datetime=${parts[g_POST_DATETIME]}
+			tags=${parts[g_POST_TAGS]}
+			content=${parts[g_POST_CONTENT]}
+
+			get_datetime "$datetime"
+			file_name=$(get_basename "$file")
+			file_name=${file_name%.tmp}
+			get_path_info "$g_posts_path/$file_name"
+			name="${pathinfo[g_PATH_INFO_NAME]}"
+			ext="${pathinfo[g_PATH_INFO_EXT]}"
+			orig_filename=$(get_name "$(echo "$file_name" | cut -d_ -f2-)")
+
+
+			if [[ -z "$title" ]]; then
+				title="Untitled"
+			fi
+
+			echo "<tr>"
+			if [[ ! -z ${datetime_parts[0]} ]]; then
+				printf '%s' "<td><time class=\"${datetime_parts[12]}\">"
+				printf '%s ' $(month_short "${datetime_parts[1]}")
+				printf '%s, ' ${datetime_parts[2]}
+				printf ${datetime_parts[0]}
+				printf '</time></td>'
+			else
+				echo "<td><time>$datetime</time></td>"
+			fi
+			echo "<td><a href=\"$orig_filename.html\">$title</a></td>"
+			echo "</tr>"
+		done
+		echo "</tbody></table>"
+	} >> "$tmp"
+}
+
+rebuild_index()
+{
+	local tmp_posts="$g_root/.sort"
+	local tmp="$g_posts_path/index.tmp";
+	local filename;
+	local files;
+
+	mkdir -p $tmp_posts
+	chmod 750 $tmp_posts
+	>$tmp
+
+	echo "Sorting posts..."
+	for file in $(ls -d $g_posts_path/*.{html,md} 2>/dev/null); do
+		name=$(get_basename $file)
+
+		get_file_parts "$file"
+		get_path_info "$file"
+		local datetime=${parts[g_POST_DATETIME]}
+
+		# TODO: Fix index page when all posts have no datetime
+		if [[ -z "$datetime" ]]; then
+			continue
+		fi
+
+		filename="${datetime//[:\-_+]/}_$name"
+
+		local path="$tmp_posts/$filename.tmp"
+		echo "---" > "$path"
+		echo "title: ${parts[g_POST_TITLE]}" >> "$path"
+		echo "datetime: ${parts[g_POST_DATETIME]}" >> "$path"
+		echo "tags: ${parts[g_POST_TAGS]}" >> "$path"
+		echo "---" >> "$path"
+		printf '%s\n' "${parts[g_POST_CONTENT]}" >> "$path"
+	done
+
+	echo "Generating posts index..."
+	$g_fn_index_build "$tmp"
 
 	build_page "$tmp" "" "$g_build_path/index.html"
 	rm $tmp
