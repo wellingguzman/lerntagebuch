@@ -357,6 +357,9 @@ create_post()
 		printf '%s\n' "$line" >> "$tmpContent"
 	done < "$path"
 
+	# NOTE: last line it's outsite the loop
+	printf '%s\n' "$line" >> "$tmpContent"
+
 	{
 		echo "<article>"
 		echo "<h1 class=\"title\">$title</h1>"
