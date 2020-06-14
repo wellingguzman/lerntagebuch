@@ -413,7 +413,7 @@ get_tags()
 }
 
 build_all() {
-	for file in $(ls -d $g_posts_path/*.{html,md} 2>/dev/null); do
+	for file in $(ls $g_posts_path/*.{html,md} 2>/dev/null); do
 		create_post $file
 	done
 }
@@ -422,7 +422,7 @@ fn_index_default()
 {
 	local tmp=$1
 
-	for file in $(ls -d $tmp_posts/* 2>/dev/null); do
+	for file in $(ls -r $tmp_posts/* 2>/dev/null); do
 		get_file_parts "$file"
 		title=${parts[g_POST_TITLE]}
 		datetime=${parts[g_POST_DATETIME]}
@@ -473,7 +473,7 @@ fn_index_list()
 
 	{
 		echo "<table><tbody>"
-		for file in $(ls -d $tmp_posts/* 2>/dev/null); do
+		for file in $(ls -r $tmp_posts/* 2>/dev/null); do
 			get_file_parts "$file"
 			title=${parts[g_POST_TITLE]}
 			datetime=${parts[g_POST_DATETIME]}
@@ -522,7 +522,7 @@ rebuild_index()
 	>$tmp
 
 	echo "Sorting posts..."
-	for file in $(ls -d $g_posts_path/*.{html,md} 2>/dev/null); do
+	for file in $(ls $g_posts_path/*.{html,md} 2>/dev/null); do
 		name=$(get_basename $file)
 
 		get_file_parts "$file"
