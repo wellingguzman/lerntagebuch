@@ -7,6 +7,7 @@ Something I was struggling when creating the static site generator in bash was:
 
 1. How I can temporary change directory execute some tasks and back to the previous working directory.
 2. How I had no idea how to append different output together to form a file content
+<!--more-->
 
 Regarding the directory change I remember using `pushd` and `popd`, but I had no luck and no way to figure it out why it wasn't working as I expected.
 

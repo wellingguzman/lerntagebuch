@@ -6,6 +6,7 @@ tags: learning bash
 Welcome, this is my learning journal. The goal of this journal is to have a public place where I can write about my learning activities in a infrequently manner.
 
 To start this learning journal, the first thing I tried to learn was to make a simple site generator in bash. That script was used to build this page. I didn't make so many notes because I was expecting to write one, but let the code speak a bit for itself.
+<!--more-->
 
 It wasn't easy to create and at one point when things started to get uphill, I just stopped trying to make this in a "perfect" way, and starting to dump code just to make it work and this is how the first idea came on, not perfect, but actually working which was the intention.
 

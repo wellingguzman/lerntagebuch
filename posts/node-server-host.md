@@ -4,6 +4,7 @@ datetime: 2020-06-04T20:49:16Z
 tags: nodejs server
 ---
 <time>10:08pm</time> My node server is publicly accessible using the IP, I thought by default node were only listening for connection coming from the same machine.
+<!--more-->
 
 <time>10:16pm</time> According to Node.js documentation when the server is not listening to any specific host, it will accept connection from `::` if IPv6 is available otherwise `0.0.0.0`.
 

@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-# Version: 8959ff4
+# Version: 97a28c1
 
 _global_variables() {
 	g_root=$(pwd)
@@ -29,6 +29,7 @@ g_POST_TITLE=1
 g_POST_DATETIME=2
 g_POST_TAGS=3
 g_POST_CONTENT=4
+g_POST_EXCERPT=5
 
 get_ext()
 {
@@ -217,6 +218,7 @@ get_file_parts()
 	local tags=""
 	local datetime=""
 	local content=""
+	local excerpt=""
 	local tmp="$path.info.tmp"
 	local part_start=0
 	local part_done=0
@@ -245,8 +247,13 @@ get_file_parts()
 			continue
 		fi
 
-		# content
-		printf '%s\n' "$line" >> "$tmp"
+		if [[ $line == "<!--more-->" ]]; then
+			excerpt=$(get_content "$tmp")
+			>$tmp
+		else
+			# content
+			printf '%s\n' "$line" >> "$tmp"
+		fi
 	done < "$path"
 
 	content=$(get_content "$tmp")
@@ -258,6 +265,7 @@ get_file_parts()
 		"$datetime"
 		"$tags"
 		"$content"
+		"$excerpt"
 	)
 }
 
@@ -430,7 +438,12 @@ fn_index_default()
 		title=${parts[g_POST_TITLE]}
 		datetime=${parts[g_POST_DATETIME]}
 		tags=${parts[g_POST_TAGS]}
-		content=${parts[g_POST_CONTENT]}
+		echo "${parts[g_POST_EXCERPT]}"
+		if [[ ! -z "${parts[g_POST_EXCERPT]}" ]]; then
+			content=${parts[g_POST_EXCERPT]}
+		else
+			content=${parts[g_POST_CONTENT]}
+		fi
 
 		file_name=$(get_basename "$file")
 		file_name=${file_name%.tmp}
@@ -446,12 +459,6 @@ fn_index_default()
 			fi
 			echo "<h2><a href=\"$orig_filename.html\">$title</a></h2>"
 
-			if [[ $ext == "md" ]]; then
-				convert_content "$content"
-			else
-				printf '%s' "$content"
-			fi
-
 			if [[ ! -z "$datetime" ]] || [[ ! -z "$tags" ]]; then
 				echo "<div class=\"meta\">"
 			fi
@@ -463,6 +470,12 @@ fn_index_default()
 			fi
 			if [[ ! -z "$datetime" ]] || [[ ! -z "$tags" ]]; then
 				echo "</div>"
+			fi
+
+			if [[ $ext == "md" ]]; then
+				convert_content "$content"
+			else
+				printf '%s' "$content"
 			fi
 			echo "</article>"
 			echo "<hr>"

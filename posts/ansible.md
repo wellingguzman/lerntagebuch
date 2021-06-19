@@ -6,6 +6,7 @@ datetime: 2020-06-07T19:40:41Z
 #### 2020-06-06
 
 <time>7:41pm</time> DigitalOcean hat some issue with their servers and had schedule a migration to move the droplet to another server, But my server a day after the migration was suppose to be done, still unreachable, no email from them saying if they had issue or not. I sent them a email about this couple of hours ago, and no reply. I shutdown my droplet and now I'm unable to boot it up.
+<!--more-->
 
 <time>7:50pm</time> One thing I know is that I have some services that I have to run manually and I knew this time will come, and I do not know which one are those. Great server management skills. It's just some small servers, and every year or so I say I don't need fancy configuration because I don't do this often, but now I would take this as an excuse to use a server management tool.
 
